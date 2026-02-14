@@ -1,8 +1,16 @@
 {
   "name": "elm-outdated",
+  "version": "1.0.0",
+  "description": "Find outdated Elm dependencies",
   "type": "module",
-  "private": true,
+  "bin": {
+    "elm-outdated": "bin/elm-outdated.mjs"
+  },
+  "files": [
+    "bin/elm-outdated.mjs"
+  ],
   "scripts": {
+    "build": "elm-pages bundle-script ElmOutdated --output bin/elm-outdated.mjs",
     "test": "cd script && elm-test"
   },
   "devDependencies": {
