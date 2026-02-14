@@ -5,7 +5,7 @@ import Expect
 import Json.Decode as Decode
 import Outdated.ElmJson as ElmJson
 import Outdated.Registry as Registry
-import Outdated.Report as Report
+import Outdated.Report as Report exposing (ColorMode(..))
 import Outdated.Version as Version exposing (Version, VersionRange)
 import Test exposing (Test, describe, test)
 
@@ -379,7 +379,7 @@ suite =
                               }
                             ]
                     in
-                    Report.formatReport reports
+                    Report.formatReport NoColor reports
                         |> Expect.equal
                             (String.join "\n"
                                 [ "Package            Current  Wanted  Latest"
@@ -389,7 +389,7 @@ suite =
                             )
             , test "formatReport returns message when all up to date" <|
                 \() ->
-                    Report.formatReport []
+                    Report.formatReport NoColor []
                         |> Expect.equal "All packages are up to date!"
             ]
         ]

@@ -1,5 +1,6 @@
-module Outdated.Report exposing (Report, collectReports, formatReport)
+module Outdated.Report exposing (ColorMode(..), Report, collectReports, formatReport)
 
+import Ansi.Color
 import Dict exposing (Dict)
 import Outdated.ElmJson exposing (Constraint(..), Dependency)
 import Outdated.Version as Version exposing (Version)
@@ -11,6 +12,11 @@ type alias Report =
     , wanted : Version
     , latest : Version
     }
+
+
+type ColorMode
+    = Color
+    | NoColor
 
 
 collectReports : List Dependency -> Dict String (List Version) -> List Report
@@ -57,8 +63,8 @@ collectReports deps registry =
             )
 
 
-formatReport : List Report -> String
-formatReport reports =
+formatReport : ColorMode -> List Report -> String
+formatReport colorMode reports =
     case reports of
         [] ->
             "All packages are up to date!"
@@ -94,7 +100,7 @@ formatReport reports =
                 padRight width str =
                     str ++ String.repeat (width - String.length str) " "
 
-                formatRow r =
+                formatPlainRow r =
                     padRight nameWidth r.name
                         ++ "  "
                         ++ padRight currentWidth r.current
@@ -102,7 +108,32 @@ formatReport reports =
                         ++ padRight wantedWidth r.wanted
                         ++ "  "
                         ++ r.latest
+
+                formatColorRow report r =
+                    let
+                        nameColor =
+                            if Version.compare report.wanted report.latest /= EQ then
+                                Ansi.Color.red
+
+                            else
+                                Ansi.Color.yellow
+                    in
+                    Ansi.Color.fontColor nameColor (padRight nameWidth r.name)
+                        ++ "  "
+                        ++ Ansi.Color.fontColor Ansi.Color.white (padRight currentWidth r.current)
+                        ++ "  "
+                        ++ Ansi.Color.fontColor Ansi.Color.magenta (padRight wantedWidth r.wanted)
+                        ++ "  "
+                        ++ Ansi.Color.fontColor Ansi.Color.blue r.latest
+
+                formatDataRow report r =
+                    case colorMode of
+                        NoColor ->
+                            formatPlainRow r
+
+                        Color ->
+                            formatColorRow report r
             in
-            allRows
-                |> List.map formatRow
+            formatPlainRow header
+                :: List.map2 formatDataRow reports rows
                 |> String.join "\n"

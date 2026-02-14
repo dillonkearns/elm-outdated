@@ -1,11 +1,13 @@
 module ElmOutdated exposing (run)
 
 import BackendTask exposing (BackendTask)
+import BackendTask.Custom
 import BackendTask.File as File
 import BackendTask.Http
 import Dict exposing (Dict)
 import FatalError exposing (FatalError)
 import Json.Decode as Decode
+import Json.Encode
 import Outdated.ElmJson as ElmJson exposing (Dependency)
 import Outdated.Registry as Registry
 import Outdated.Report as Report
@@ -16,13 +18,14 @@ import Pages.Script as Script exposing (Script)
 run : Script
 run =
     Script.withoutCliOptions
-        (BackendTask.map2
-            (\deps registry ->
+        (BackendTask.map3
+            (\deps registry colorMode ->
                 Report.collectReports deps registry
-                    |> Report.formatReport
+                    |> Report.formatReport colorMode
             )
             readElmJson
             fetchRegistry
+            checkColorSupport
             |> BackendTask.andThen Script.log
         )
 
@@ -53,3 +56,19 @@ fetchRegistry =
         "https://package.elm-lang.org/all-packages"
         Registry.decoder
         |> BackendTask.allowFatal
+
+
+checkColorSupport : BackendTask FatalError Report.ColorMode
+checkColorSupport =
+    BackendTask.Custom.run "checkColorSupport"
+        Json.Encode.null
+        Decode.bool
+        |> BackendTask.allowFatal
+        |> BackendTask.map
+            (\useColor ->
+                if useColor then
+                    Report.Color
+
+                else
+                    Report.NoColor
+            )
