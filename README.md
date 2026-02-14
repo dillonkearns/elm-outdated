@@ -2,7 +2,7 @@
 
 Find outdated Elm dependencies. Supports both applications and packages.
 
-Inspired by and building on the work of [gyzerok/elm-outdated](https://github.com/gyzerok/elm-outdated).
+Inspired by and building on the work of [gyzerok/elm-outdated](https://github.com/gyzerok/elm-outdated), which supported applications but not Elm packages.
 
 ## Usage
 
@@ -15,7 +15,7 @@ npx elm-outdated
 Or run it as an [elm-pages script](https://elm-pages.com):
 
 ```bash
-elm-pages run https://github.com/dillonkearns/elm-outdated/blob/main/script/src/ElmOutdated.elm
+npx elm-pages@latest run https://github.com/dillonkearns/elm-outdated/blob/main/script/src/ElmOutdated.elm
 ```
 
 ## What does it do?
@@ -28,7 +28,9 @@ This tool checks for outdated packages but does not update them. For updating de
 
 ### Applications
 
-For applications, **Current** is the exact version pinned in your `elm.json`, and **Wanted** is the latest version available without a major (breaking) bump:
+- Current — the exact version pinned in your `elm.json`
+- Wanted — the latest version available without a major (breaking) bump
+- Latest — the absolute latest version available
 
 ```
 Package            Current  Wanted  Latest
@@ -38,35 +40,20 @@ some/long-package  1.0.0    1.1.0   2.0.0
 
 ### Packages
 
-For packages, **Current** shows the version range constraint from your `elm.json`, and **Wanted** is the latest version it is able to resolve to within that range:
+- Current — the version range constraint from your `elm.json`
+- Wanted — the latest version it is able to resolve to within that range
+- Latest — the absolute latest version available
 
 ```
 Package                              Current              Wanted  Latest
 dillonkearns/elm-cli-options-parser  3.0.0 <= v < 4.0.0  3.2.0   4.0.0
 ```
 
-### Column reference
-
-| Column      | Description                                                   |
-| ----------- | ------------------------------------------------------------- |
-| **Current** | Your `elm.json` constraint (exact version or range)           |
-| **Wanted**  | Latest version satisfying your constraint                     |
-| **Latest**  | Absolute latest version available                             |
-
 ### Color coding
 
 When running in a color-capable terminal:
 
-- **Yellow** package name — a minor/patch update is available within your constraint (Wanted > Current)
-- **Red** package name — a major version bump is available beyond your constraint (Latest > Wanted)
+- Yellow package name — a minor/patch update is available within your constraint (Wanted > Current)
+- Red package name — a major version bump is available beyond your constraint (Latest > Wanted)
 
 Color output respects the [`NO_COLOR`](https://no-color.org/) and `FORCE_COLOR` environment variables.
-
-## Development
-
-```bash
-npm install
-npm test
-npm run build
-```
-
