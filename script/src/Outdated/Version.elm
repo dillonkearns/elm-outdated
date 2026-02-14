@@ -1,4 +1,4 @@
-module Outdated.Version exposing (Version, compare, fromString, latest, latestWithSameMajor, toString)
+module Outdated.Version exposing (Version, VersionRange, compare, fromString, latest, latestWithSameMajor, latestWithinRange, rangeFromString, toString)
 
 
 type alias Version =
@@ -6,6 +6,24 @@ type alias Version =
     , minor : Int
     , patch : Int
     }
+
+
+type alias VersionRange =
+    { lower : Version
+    , upper : Version
+    }
+
+
+rangeFromString : String -> Maybe VersionRange
+rangeFromString str =
+    case String.split " <= v < " str of
+        [ lowerStr, upperStr ] ->
+            Maybe.map2 VersionRange
+                (fromString lowerStr)
+                (fromString upperStr)
+
+        _ ->
+            Nothing
 
 
 fromString : String -> Maybe Version
@@ -40,6 +58,18 @@ latestWithSameMajor : Version -> List Version -> Maybe Version
 latestWithSameMajor current versions =
     versions
         |> List.filter (\v -> v.major == current.major)
+        |> List.sortWith compare
+        |> List.reverse
+        |> List.head
+
+
+latestWithinRange : VersionRange -> List Version -> Maybe Version
+latestWithinRange range versions =
+    versions
+        |> List.filter
+            (\v ->
+                compare v range.lower /= LT && compare v range.upper == LT
+            )
         |> List.sortWith compare
         |> List.reverse
         |> List.head

@@ -6,7 +6,7 @@ import Json.Decode as Decode
 import Outdated.ElmJson as ElmJson
 import Outdated.Registry as Registry
 import Outdated.Report as Report
-import Outdated.Version as Version exposing (Version)
+import Outdated.Version as Version exposing (Version, VersionRange)
 import Test exposing (Test, describe, test)
 
 
@@ -115,6 +115,76 @@ suite =
                     Version.latest []
                         |> Expect.equal Nothing
             ]
+        , describe "rangeFromString"
+            [ test "parses valid range" <|
+                \() ->
+                    Version.rangeFromString "1.0.0 <= v < 2.0.0"
+                        |> Expect.equal
+                            (Just
+                                { lower = { major = 1, minor = 0, patch = 0 }
+                                , upper = { major = 2, minor = 0, patch = 0 }
+                                }
+                            )
+            , test "parses range with non-zero minor/patch" <|
+                \() ->
+                    Version.rangeFromString "2.3.1 <= v < 3.0.0"
+                        |> Expect.equal
+                            (Just
+                                { lower = { major = 2, minor = 3, patch = 1 }
+                                , upper = { major = 3, minor = 0, patch = 0 }
+                                }
+                            )
+            , test "rejects invalid input" <|
+                \() ->
+                    Version.rangeFromString "not-a-range"
+                        |> Expect.equal Nothing
+            , test "rejects plain version" <|
+                \() ->
+                    Version.rangeFromString "1.0.0"
+                        |> Expect.equal Nothing
+            ]
+        , describe "latestWithinRange"
+            [ test "finds latest version within range" <|
+                \() ->
+                    Version.latestWithinRange
+                        { lower = { major = 1, minor = 0, patch = 0 }
+                        , upper = { major = 2, minor = 0, patch = 0 }
+                        }
+                        [ { major = 1, minor = 0, patch = 0 }
+                        , { major = 1, minor = 1, patch = 0 }
+                        , { major = 1, minor = 2, patch = 0 }
+                        , { major = 2, minor = 0, patch = 0 }
+                        ]
+                        |> Expect.equal (Just { major = 1, minor = 2, patch = 0 })
+            , test "excludes upper bound" <|
+                \() ->
+                    Version.latestWithinRange
+                        { lower = { major = 1, minor = 0, patch = 0 }
+                        , upper = { major = 2, minor = 0, patch = 0 }
+                        }
+                        [ { major = 2, minor = 0, patch = 0 }
+                        ]
+                        |> Expect.equal Nothing
+            , test "includes lower bound" <|
+                \() ->
+                    Version.latestWithinRange
+                        { lower = { major = 1, minor = 0, patch = 0 }
+                        , upper = { major = 2, minor = 0, patch = 0 }
+                        }
+                        [ { major = 1, minor = 0, patch = 0 }
+                        ]
+                        |> Expect.equal (Just { major = 1, minor = 0, patch = 0 })
+            , test "returns Nothing when no versions match" <|
+                \() ->
+                    Version.latestWithinRange
+                        { lower = { major = 3, minor = 0, patch = 0 }
+                        , upper = { major = 4, minor = 0, patch = 0 }
+                        }
+                        [ { major = 1, minor = 0, patch = 0 }
+                        , { major = 2, minor = 0, patch = 0 }
+                        ]
+                        |> Expect.equal Nothing
+            ]
         , describe "ElmJson.decoder"
             [ test "decodes application elm.json" <|
                 \() ->
@@ -125,9 +195,41 @@ suite =
                     Decode.decodeString ElmJson.decoder json
                         |> Expect.equal
                             (Ok
-                                [ ( "elm/core", { major = 1, minor = 0, patch = 5 } )
-                                , ( "elm/json", { major = 1, minor = 1, patch = 3 } )
-                                , ( "elm-explorations/test", { major = 2, minor = 1, patch = 0 } )
+                                [ { name = "elm/core", constraint = ElmJson.Exact { major = 1, minor = 0, patch = 5 } }
+                                , { name = "elm/json", constraint = ElmJson.Exact { major = 1, minor = 1, patch = 3 } }
+                                , { name = "elm-explorations/test", constraint = ElmJson.Exact { major = 2, minor = 1, patch = 0 } }
+                                ]
+                            )
+            , test "decodes package elm.json" <|
+                \() ->
+                    let
+                        json =
+                            """{"type":"package","dependencies":{"elm/core":"1.0.0 <= v < 2.0.0","elm/json":"1.0.0 <= v < 2.0.0"},"test-dependencies":{"elm-explorations/test":"1.0.0 <= v < 3.0.0"}}"""
+                    in
+                    Decode.decodeString ElmJson.decoder json
+                        |> Expect.equal
+                            (Ok
+                                [ { name = "elm/core"
+                                  , constraint =
+                                        ElmJson.Range
+                                            { lower = { major = 1, minor = 0, patch = 0 }
+                                            , upper = { major = 2, minor = 0, patch = 0 }
+                                            }
+                                  }
+                                , { name = "elm/json"
+                                  , constraint =
+                                        ElmJson.Range
+                                            { lower = { major = 1, minor = 0, patch = 0 }
+                                            , upper = { major = 2, minor = 0, patch = 0 }
+                                            }
+                                  }
+                                , { name = "elm-explorations/test"
+                                  , constraint =
+                                        ElmJson.Range
+                                            { lower = { major = 1, minor = 0, patch = 0 }
+                                            , upper = { major = 3, minor = 0, patch = 0 }
+                                            }
+                                  }
                                 ]
                             )
             ]
@@ -148,12 +250,12 @@ suite =
                             )
             ]
         , describe "Report"
-            [ test "collectReports finds outdated packages" <|
+            [ test "collectReports finds outdated packages (application)" <|
                 \() ->
                     let
                         deps =
-                            [ ( "elm/core", { major = 1, minor = 0, patch = 2 } )
-                            , ( "elm/json", { major = 1, minor = 1, patch = 3 } )
+                            [ { name = "elm/core", constraint = ElmJson.Exact { major = 1, minor = 0, patch = 2 } }
+                            , { name = "elm/json", constraint = ElmJson.Exact { major = 1, minor = 1, patch = 3 } }
                             ]
 
                         registry =
@@ -179,11 +281,11 @@ suite =
                               , latest = { major = 1, minor = 0, patch = 5 }
                               }
                             ]
-            , test "collectReports handles major version bump" <|
+            , test "collectReports handles major version bump (application)" <|
                 \() ->
                     let
                         deps =
-                            [ ( "some/pkg", { major = 1, minor = 0, patch = 0 } ) ]
+                            [ { name = "some/pkg", constraint = ElmJson.Exact { major = 1, minor = 0, patch = 0 } } ]
 
                         registry =
                             Dict.fromList
@@ -203,6 +305,64 @@ suite =
                               , latest = { major = 2, minor = 0, patch = 0 }
                               }
                             ]
+            , test "collectReports with Range: latest outside range is reported" <|
+                \() ->
+                    let
+                        deps =
+                            [ { name = "elm/core"
+                              , constraint =
+                                    ElmJson.Range
+                                        { lower = { major = 1, minor = 0, patch = 0 }
+                                        , upper = { major = 2, minor = 0, patch = 0 }
+                                        }
+                              }
+                            ]
+
+                        registry =
+                            Dict.fromList
+                                [ ( "elm/core"
+                                  , [ { major = 1, minor = 0, patch = 0 }
+                                    , { major = 1, minor = 0, patch = 5 }
+                                    , { major = 1, minor = 1, patch = 0 }
+                                    , { major = 2, minor = 0, patch = 0 }
+                                    , { major = 2, minor = 1, patch = 0 }
+                                    ]
+                                  )
+                                ]
+                    in
+                    Report.collectReports deps registry
+                        |> Expect.equal
+                            [ { name = "elm/core"
+                              , current = { major = 1, minor = 1, patch = 0 }
+                              , wanted = { major = 1, minor = 1, patch = 0 }
+                              , latest = { major = 2, minor = 1, patch = 0 }
+                              }
+                            ]
+            , test "collectReports with Range: latest within range is not reported" <|
+                \() ->
+                    let
+                        deps =
+                            [ { name = "elm/core"
+                              , constraint =
+                                    ElmJson.Range
+                                        { lower = { major = 1, minor = 0, patch = 0 }
+                                        , upper = { major = 2, minor = 0, patch = 0 }
+                                        }
+                              }
+                            ]
+
+                        registry =
+                            Dict.fromList
+                                [ ( "elm/core"
+                                  , [ { major = 1, minor = 0, patch = 0 }
+                                    , { major = 1, minor = 0, patch = 5 }
+                                    , { major = 1, minor = 1, patch = 0 }
+                                    ]
+                                  )
+                                ]
+                    in
+                    Report.collectReports deps registry
+                        |> Expect.equal []
             , test "formatReport produces aligned table" <|
                 \() ->
                     let

@@ -6,7 +6,7 @@ import BackendTask.Http
 import Dict exposing (Dict)
 import FatalError exposing (FatalError)
 import Json.Decode as Decode
-import Outdated.ElmJson as ElmJson
+import Outdated.ElmJson as ElmJson exposing (Dependency)
 import Outdated.Registry as Registry
 import Outdated.Report as Report
 import Outdated.Version exposing (Version)
@@ -27,7 +27,7 @@ run =
         )
 
 
-readElmJson : BackendTask FatalError (List ( String, Version ))
+readElmJson : BackendTask FatalError (List Dependency)
 readElmJson =
     File.rawFile "elm.json"
         |> BackendTask.allowFatal

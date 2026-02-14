@@ -1,6 +1,7 @@
 module Outdated.Report exposing (Report, collectReports, formatReport)
 
 import Dict exposing (Dict)
+import Outdated.ElmJson exposing (Constraint(..), Dependency)
 import Outdated.Version as Version exposing (Version)
 
 
@@ -12,17 +13,29 @@ type alias Report =
     }
 
 
-collectReports : List ( String, Version ) -> Dict String (List Version) -> List Report
+collectReports : List Dependency -> Dict String (List Version) -> List Report
 collectReports deps registry =
     deps
         |> List.filterMap
-            (\( name, current ) ->
-                case Dict.get name registry of
+            (\dep ->
+                case Dict.get dep.name registry of
                     Just versions ->
                         let
-                            wanted =
-                                Version.latestWithSameMajor current versions
-                                    |> Maybe.withDefault current
+                            ( current, wanted ) =
+                                case dep.constraint of
+                                    Exact version ->
+                                        ( version
+                                        , Version.latestWithSameMajor version versions
+                                            |> Maybe.withDefault version
+                                        )
+
+                                    Range range ->
+                                        let
+                                            best =
+                                                Version.latestWithinRange range versions
+                                                    |> Maybe.withDefault range.lower
+                                        in
+                                        ( best, best )
 
                             latestVersion =
                                 Version.latest versions
@@ -30,7 +43,7 @@ collectReports deps registry =
                         in
                         if Version.compare current wanted /= EQ || Version.compare current latestVersion /= EQ then
                             Just
-                                { name = name
+                                { name = dep.name
                                 , current = current
                                 , wanted = wanted
                                 , latest = latestVersion
