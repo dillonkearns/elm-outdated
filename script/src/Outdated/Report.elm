@@ -1,6 +1,7 @@
 module Outdated.Report exposing (ColorMode(..), Report, collectReports, formatReport)
 
 import Ansi.Color
+import Ansi.Font
 import Dict exposing (Dict)
 import Outdated.ElmJson exposing (Constraint(..), Dependency)
 import Outdated.Version as Version exposing (Version)
@@ -126,6 +127,23 @@ formatReport colorMode reports =
                         ++ "  "
                         ++ Ansi.Color.fontColor Ansi.Color.blue r.latest
 
+                formatHeaderRow r =
+                    case colorMode of
+                        NoColor ->
+                            formatPlainRow r
+
+                        Color ->
+                            Ansi.Font.underline r.name
+                                ++ String.repeat (nameWidth - String.length r.name) " "
+                                ++ "  "
+                                ++ Ansi.Font.underline r.current
+                                ++ String.repeat (currentWidth - String.length r.current) " "
+                                ++ "  "
+                                ++ Ansi.Font.underline r.wanted
+                                ++ String.repeat (wantedWidth - String.length r.wanted) " "
+                                ++ "  "
+                                ++ Ansi.Font.underline r.latest
+
                 formatDataRow report r =
                     case colorMode of
                         NoColor ->
@@ -134,6 +152,6 @@ formatReport colorMode reports =
                         Color ->
                             formatColorRow report r
             in
-            formatPlainRow header
+            formatHeaderRow header
                 :: List.map2 formatDataRow reports rows
                 |> String.join "\n"
