@@ -276,7 +276,7 @@ suite =
                     Report.collectReports deps registry
                         |> Expect.equal
                             [ { name = "elm/core"
-                              , current = { major = 1, minor = 0, patch = 2 }
+                              , constraint = ElmJson.Exact { major = 1, minor = 0, patch = 2 }
                               , wanted = { major = 1, minor = 0, patch = 5 }
                               , latest = { major = 1, minor = 0, patch = 5 }
                               }
@@ -300,7 +300,7 @@ suite =
                     Report.collectReports deps registry
                         |> Expect.equal
                             [ { name = "some/pkg"
-                              , current = { major = 1, minor = 0, patch = 0 }
+                              , constraint = ElmJson.Exact { major = 1, minor = 0, patch = 0 }
                               , wanted = { major = 1, minor = 1, patch = 0 }
                               , latest = { major = 2, minor = 0, patch = 0 }
                               }
@@ -333,7 +333,11 @@ suite =
                     Report.collectReports deps registry
                         |> Expect.equal
                             [ { name = "elm/core"
-                              , current = { major = 1, minor = 1, patch = 0 }
+                              , constraint =
+                                    ElmJson.Range
+                                        { lower = { major = 1, minor = 0, patch = 0 }
+                                        , upper = { major = 2, minor = 0, patch = 0 }
+                                        }
                               , wanted = { major = 1, minor = 1, patch = 0 }
                               , latest = { major = 2, minor = 1, patch = 0 }
                               }
@@ -363,17 +367,17 @@ suite =
                     in
                     Report.collectReports deps registry
                         |> Expect.equal []
-            , test "formatReport produces aligned table" <|
+            , test "formatReport produces aligned table for application" <|
                 \() ->
                     let
                         reports =
                             [ { name = "elm/core"
-                              , current = { major = 1, minor = 0, patch = 2 }
+                              , constraint = ElmJson.Exact { major = 1, minor = 0, patch = 2 }
                               , wanted = { major = 1, minor = 0, patch = 5 }
                               , latest = { major = 1, minor = 0, patch = 5 }
                               }
                             , { name = "some/long-package"
-                              , current = { major = 1, minor = 0, patch = 0 }
+                              , constraint = ElmJson.Exact { major = 1, minor = 0, patch = 0 }
                               , wanted = { major = 1, minor = 1, patch = 0 }
                               , latest = { major = 2, minor = 0, patch = 0 }
                               }
@@ -385,6 +389,28 @@ suite =
                                 [ "Package            Current  Wanted  Latest"
                                 , "elm/core           1.0.2    1.0.5   1.0.5"
                                 , "some/long-package  1.0.0    1.1.0   2.0.0"
+                                ]
+                            )
+            , test "formatReport produces aligned table for package" <|
+                \() ->
+                    let
+                        reports =
+                            [ { name = "elm/core"
+                              , constraint =
+                                    ElmJson.Range
+                                        { lower = { major = 1, minor = 0, patch = 0 }
+                                        , upper = { major = 2, minor = 0, patch = 0 }
+                                        }
+                              , wanted = { major = 1, minor = 1, patch = 0 }
+                              , latest = { major = 2, minor = 1, patch = 0 }
+                              }
+                            ]
+                    in
+                    Report.formatReport NoColor reports
+                        |> Expect.equal
+                            (String.join "\n"
+                                [ "Package   Current             Wanted  Latest"
+                                , "elm/core  1.0.0 <= v < 2.0.0  1.1.0   2.1.0"
                                 ]
                             )
             , test "formatReport returns message when all up to date" <|

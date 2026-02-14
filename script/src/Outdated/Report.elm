@@ -4,12 +4,12 @@ import Ansi.Color
 import Ansi.Font
 import Dict exposing (Dict)
 import Outdated.ElmJson exposing (Constraint(..), Dependency)
-import Outdated.Version as Version exposing (Version)
+import Outdated.Version as Version exposing (Version, VersionRange)
 
 
 type alias Report =
     { name : String
-    , current : Version
+    , constraint : Constraint
     , wanted : Version
     , latest : Version
     }
@@ -28,21 +28,23 @@ collectReports deps registry =
                 case Dict.get dep.name registry of
                     Just versions ->
                         let
-                            ( current, wanted ) =
+                            wanted =
                                 case dep.constraint of
                                     Exact version ->
-                                        ( version
-                                        , Version.latestWithSameMajor version versions
+                                        Version.latestWithSameMajor version versions
                                             |> Maybe.withDefault version
-                                        )
 
                                     Range range ->
-                                        let
-                                            best =
-                                                Version.latestWithinRange range versions
-                                                    |> Maybe.withDefault range.lower
-                                        in
-                                        ( best, best )
+                                        Version.latestWithinRange range versions
+                                            |> Maybe.withDefault range.lower
+
+                            current =
+                                case dep.constraint of
+                                    Exact version ->
+                                        version
+
+                                    Range _ ->
+                                        wanted
 
                             latestVersion =
                                 Version.latest versions
@@ -51,7 +53,7 @@ collectReports deps registry =
                         if Version.compare current wanted /= EQ || Version.compare current latestVersion /= EQ then
                             Just
                                 { name = dep.name
-                                , current = current
+                                , constraint = dep.constraint
                                 , wanted = wanted
                                 , latest = latestVersion
                                 }
@@ -79,7 +81,7 @@ formatReport colorMode reports =
                     List.map
                         (\r ->
                             { name = r.name
-                            , current = Version.toString r.current
+                            , current = constraintToString r.constraint
                             , wanted = Version.toString r.wanted
                             , latest = Version.toString r.latest
                             }
@@ -155,3 +157,13 @@ formatReport colorMode reports =
             formatHeaderRow header
                 :: List.map2 formatDataRow reports rows
                 |> String.join "\n"
+
+
+constraintToString : Constraint -> String
+constraintToString constraint =
+    case constraint of
+        Exact version ->
+            Version.toString version
+
+        Range range ->
+            Version.toString range.lower ++ " <= v < " ++ Version.toString range.upper
