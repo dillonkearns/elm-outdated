@@ -1,8 +1,20 @@
 {
-  "name": "elm-outdated",
+  "name": "@dillonkearns/elm-outdated",
   "version": "1.0.0",
   "description": "Find outdated Elm dependencies",
   "type": "module",
+  "license": "BSD-3-Clause",
+  "author": "Dillon Kearns",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dillonkearns/elm-outdated.git"
+  },
+  "keywords": [
+    "elm",
+    "outdated",
+    "dependencies",
+    "elm-pages"
+  ],
   "bin": {
     "elm-outdated": "bin/elm-outdated.mjs"
   },
