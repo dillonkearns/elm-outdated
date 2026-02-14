@@ -55,29 +55,24 @@ compare a b =
 
 
 latestWithSameMajor : Version -> List Version -> Maybe Version
-latestWithSameMajor current versions =
-    versions
-        |> List.filter (\v -> v.major == current.major)
-        |> List.sortWith compare
-        |> List.reverse
-        |> List.head
+latestWithSameMajor current =
+    latestWhere (\v -> v.major == current.major)
 
 
 latestWithinRange : VersionRange -> List Version -> Maybe Version
-latestWithinRange range versions =
-    versions
-        |> List.filter
-            (\v ->
-                compare v range.lower /= LT && compare v range.upper == LT
-            )
-        |> List.sortWith compare
-        |> List.reverse
-        |> List.head
+latestWithinRange range =
+    latestWhere (\v -> compare v range.lower /= LT && compare v range.upper == LT)
 
 
 latest : List Version -> Maybe Version
-latest versions =
+latest =
+    latestWhere (always True)
+
+
+latestWhere : (Version -> Bool) -> List Version -> Maybe Version
+latestWhere pred versions =
     versions
+        |> List.filter pred
         |> List.sortWith compare
         |> List.reverse
         |> List.head

@@ -35,63 +35,37 @@ decoder =
 applicationDecoder : Decoder (List Dependency)
 applicationDecoder =
     Decode.map2 (++)
-        (Decode.at [ "dependencies", "direct" ] (exactDictDecoder))
-        (Decode.at [ "test-dependencies", "direct" ] (exactDictDecoder))
+        (Decode.at [ "dependencies", "direct" ] (constraintDictDecoder (Version.fromString >> Maybe.map Exact)))
+        (Decode.at [ "test-dependencies", "direct" ] (constraintDictDecoder (Version.fromString >> Maybe.map Exact)))
 
 
 packageDecoder : Decoder (List Dependency)
 packageDecoder =
     Decode.map2 (++)
-        (Decode.field "dependencies" rangeDictDecoder)
-        (Decode.field "test-dependencies" rangeDictDecoder)
+        (Decode.field "dependencies" (constraintDictDecoder (Version.rangeFromString >> Maybe.map Range)))
+        (Decode.field "test-dependencies" (constraintDictDecoder (Version.rangeFromString >> Maybe.map Range)))
 
 
-exactDictDecoder : Decoder (List Dependency)
-exactDictDecoder =
+constraintDictDecoder : (String -> Maybe Constraint) -> Decoder (List Dependency)
+constraintDictDecoder parseConstraint =
     Decode.keyValuePairs Decode.string
         |> Decode.andThen
             (\pairs ->
-                case parseAllExact pairs of
+                case parseAllConstraints parseConstraint pairs of
                     Just result ->
                         Decode.succeed result
 
                     Nothing ->
-                        Decode.fail "Invalid version string in dependencies"
+                        Decode.fail "Invalid version constraint in dependencies"
             )
 
 
-parseAllExact : List ( String, String ) -> Maybe (List Dependency)
-parseAllExact pairs =
+parseAllConstraints : (String -> Maybe Constraint) -> List ( String, String ) -> Maybe (List Dependency)
+parseAllConstraints parseConstraint pairs =
     List.foldr
-        (\( name, vStr ) acc ->
-            Maybe.map2 (\v list -> { name = name, constraint = Exact v } :: list)
-                (Version.fromString vStr)
-                acc
-        )
-        (Just [])
-        pairs
-
-
-rangeDictDecoder : Decoder (List Dependency)
-rangeDictDecoder =
-    Decode.keyValuePairs Decode.string
-        |> Decode.andThen
-            (\pairs ->
-                case parseAllRanges pairs of
-                    Just result ->
-                        Decode.succeed result
-
-                    Nothing ->
-                        Decode.fail "Invalid version range in dependencies"
-            )
-
-
-parseAllRanges : List ( String, String ) -> Maybe (List Dependency)
-parseAllRanges pairs =
-    List.foldr
-        (\( name, rangeStr ) acc ->
-            Maybe.map2 (\range list -> { name = name, constraint = Range range } :: list)
-                (Version.rangeFromString rangeStr)
+        (\( name, str ) acc ->
+            Maybe.map2 (\constraint list -> { name = name, constraint = constraint } :: list)
+                (parseConstraint str)
                 acc
         )
         (Just [])
