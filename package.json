@@ -1,0 +1,11 @@
+{
+  "name": "elm-outdated",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "cd script && elm-test"
+  },
+  "devDependencies": {
+    "elm-pages": "3.0.28"
+  }
+}
