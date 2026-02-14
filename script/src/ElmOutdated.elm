@@ -27,6 +27,7 @@ run =
             fetchRegistry
             checkColorSupport
             |> BackendTask.andThen Script.log
+            |> BackendTask.quiet
         )
 
 
