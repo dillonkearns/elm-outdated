@@ -31,23 +31,16 @@ This tool checks for outdated packages but does not update them. For updating de
 - Current — the exact version pinned in your `elm.json`
 - Wanted — the latest version available without a major (breaking) bump
 - Latest — the absolute latest version available
+![Screenshot_2026-02-13_at_10 18 44_PM](https://github.com/user-attachments/assets/4b823d94-2ae4-4e6b-90d3-9a43713072c7)
 
-```
-Package            Current  Wanted  Latest
-elm/json           1.1.3    1.1.4   1.1.4
-some/long-package  1.0.0    1.1.0   2.0.0
-```
 
 ### Packages
 
 - Current — the version range constraint from your `elm.json`
 - Wanted — the latest version it is able to resolve to within that range
 - Latest — the absolute latest version available
+<img width="1203" height="93" alt="Screenshot_2026-02-13_at_10 31 44_PM" src="https://github.com/user-attachments/assets/133f6baf-71e5-4ff3-9e76-cb2e6b9c7ecd" />
 
-```
-Package                              Current              Wanted  Latest
-dillonkearns/elm-cli-options-parser  3.0.0 <= v < 4.0.0  3.2.0   4.0.0
-```
 
 ### Color coding
 
